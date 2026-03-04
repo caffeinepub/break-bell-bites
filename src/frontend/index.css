@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Fonts ─────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/assets/fonts/CabinetGrotesk-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/assets/fonts/BricolageGrotesque[opsz,wdth,wght].woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sora";
+  src: url("/assets/fonts/Sora[wght].woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.875rem;
+
+    /* ── BREAK BELL BITES — Fiery Street Palette ── */
+    /* Dark charcoal bg for moody street food feel */
+    --background: 0.14 0.015 30;
+    --foreground: 0.96 0.01 60;
+
+    --card: 0.18 0.018 35;
+    --card-foreground: 0.96 0.01 60;
+
+    --popover: 0.18 0.018 35;
+    --popover-foreground: 0.96 0.01 60;
+
+    /* Fire orange primary */
+    --primary: 0.68 0.22 38;
+    --primary-foreground: 0.09 0 0;
+
+    /* Dark warm secondary */
+    --secondary: 0.22 0.02 40;
+    --secondary-foreground: 0.82 0.04 50;
+
+    --muted: 0.22 0.015 35;
+    --muted-foreground: 0.58 0.04 50;
+
+    /* Golden amber accent */
+    --accent: 0.76 0.18 68;
+    --accent-foreground: 0.12 0.02 35;
+
+    --destructive: 0.55 0.24 25;
+    --destructive-foreground: 0.98 0 0;
+
+    --border: 0.28 0.025 40;
+    --input: 0.28 0.025 40;
+    --ring: 0.68 0.22 38;
+
+    --chart-1: 0.68 0.22 38;
+    --chart-2: 0.76 0.18 68;
+    --chart-3: 0.55 0.15 25;
+    --chart-4: 0.48 0.12 200;
+    --chart-5: 0.82 0.14 120;
+
+    --sidebar: 0.12 0.015 30;
+    --sidebar-foreground: 0.96 0.01 60;
+    --sidebar-primary: 0.68 0.22 38;
+    --sidebar-primary-foreground: 0.09 0 0;
+    --sidebar-accent: 0.20 0.018 35;
+    --sidebar-accent-foreground: 0.82 0.04 50;
+    --sidebar-border: 0.26 0.022 38;
+    --sidebar-ring: 0.68 0.22 38;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Sora", "Cabinet Grotesk", system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Cabinet Grotesk", "Bricolage Grotesque", system-ui, sans-serif;
+  }
+
+  .font-ui {
+    font-family: "Bricolage Grotesque", "Sora", system-ui, sans-serif;
+  }
+
+  .font-body {
+    font-family: "Sora", system-ui, sans-serif;
+  }
+
+  .fire-glow {
+    box-shadow: 0 4px 24px oklch(0.68 0.22 38 / 0.25), 0 1px 4px oklch(0 0 0 / 0.4);
+  }
+
+  .fire-glow-lg {
+    box-shadow: 0 8px 40px oklch(0.68 0.22 38 / 0.35), 0 2px 10px oklch(0 0 0 / 0.5);
+  }
+
+  .sticky-bar-shadow {
+    box-shadow: 0 -4px 24px oklch(0.68 0.22 38 / 0.3), 0 -1px 6px oklch(0 0 0 / 0.5);
+  }
+
+  .category-badge {
+    background: linear-gradient(135deg, oklch(0.68 0.22 38 / 0.15), oklch(0.76 0.18 68 / 0.1));
+    border-left: 3px solid oklch(0.68 0.22 38);
+  }
+}
