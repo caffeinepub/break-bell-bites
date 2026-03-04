@@ -142,14 +142,14 @@ function getAddonPrice(item: MenuItem, selectedAddons: string[]): number {
   if (!item.addons) return 0;
   return item.addons
     .filter((a) => selectedAddons.includes(a.id))
-    .reduce((sum, a) => sum + a.price, 0);
+    .reduce((sum, a) => sum + Math.round(Number(a.price)), 0);
 }
 
 function getItemSubtotal(cartItem: CartItem): number {
-  return (
-    (cartItem.price + getAddonPrice(cartItem, cartItem.selectedAddons)) *
-    cartItem.quantity
-  );
+  const basePrice = Math.round(Number(cartItem.price));
+  const addonPrice = getAddonPrice(cartItem, cartItem.selectedAddons);
+  const qty = Math.round(Number(cartItem.quantity));
+  return (basePrice + addonPrice) * qty;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -167,8 +167,13 @@ export default function App() {
   const submitOrderMutation = useSubmitOrder();
 
   const cartItems = Object.values(cart);
-  const totalItems = cartItems.reduce((sum, i) => sum + i.quantity, 0);
-  const totalAmount = cartItems.reduce((sum, i) => sum + getItemSubtotal(i), 0);
+  const totalItems = cartItems.reduce(
+    (sum, i) => sum + Math.round(Number(i.quantity)),
+    0,
+  );
+  const totalAmount = Math.round(
+    Number(cartItems.reduce((sum, i) => sum + getItemSubtotal(i), 0)),
+  );
 
   /* ── Cart helpers ─────────────────────────────────────────────── */
   const addItem = useCallback((item: MenuItem) => {
@@ -224,7 +229,47 @@ export default function App() {
     return Object.keys(newErrors).length === 0;
   };
 
-  /* ── Order submission ─────────────────────────────────────────── */
+  /* ── Build WhatsApp message ───────────────────────────────────── */
+  const buildWhatsAppMessage = () => {
+    const itemLines = cartItems
+      .map((item) => {
+        const addonLabels = item.selectedAddons
+          .map((aId) => item.addons?.find((a) => a.id === aId)?.label)
+          .filter(Boolean)
+          .join(", ");
+        const nameWithAddons = addonLabels
+          ? `${item.name} (${addonLabels.replace(/ \+₹\d+/g, "")})`
+          : item.name;
+        return `• ${nameWithAddons} x${item.quantity} = ₹${getItemSubtotal(item)}`;
+      })
+      .join("\n");
+
+    return [
+      "🛒 New Order – BREAK BELL BITES",
+      "",
+      `Customer: ${customerName.trim()}`,
+      `Mobile: ${mobileNumber.trim()}`,
+      `Delivery Place: ${deliveryPlace.trim()}`,
+      "",
+      "Items Ordered:",
+      itemLines,
+      "",
+      `Total: ₹${totalAmount}`,
+      "",
+      "Payment Done ✅",
+    ].join("\n");
+  };
+
+  /* ── Open Google Pay (manual, no auto-trigger) ────────────────── */
+  const handleOpenGooglePay = () => {
+    const upiAmount = Math.round(Number(totalAmount));
+    window.open(
+      `upi://pay?pa=sakthinaveen0707@oksbi&pn=Break%20Bell%20Bites&am=${upiAmount}&cu=INR`,
+      "_blank",
+    );
+  };
+
+  /* ── Order submission + WhatsApp ──────────────────────────────── */
   const handleConfirmOrder = async () => {
     if (!validate()) return;
     setSubmitError("");
@@ -240,51 +285,16 @@ export default function App() {
         deliveryPlace: deliveryPlace.trim(),
         mobileNumber: mobileNumber.trim(),
         items: orderItems,
-        totalAmount: BigInt(totalAmount),
+        totalAmount: BigInt(Math.round(Number(totalAmount))),
       },
       {
         onSuccess: (id) => {
           setOrderId(id);
-
-          const itemLines = cartItems
-            .map((item) => {
-              const addonLabels = item.selectedAddons
-                .map((aId) => item.addons?.find((a) => a.id === aId)?.label)
-                .filter(Boolean)
-                .join(", ");
-              const nameWithAddons = addonLabels
-                ? `${item.name} (${addonLabels.replace(/ \+₹\d+/g, "")})`
-                : item.name;
-              return `• ${nameWithAddons} x${item.quantity} = ₹${getItemSubtotal(item)}`;
-            })
-            .join("\n");
-
-          const message = [
-            "🛒 New Order – BREAK BELL BITES",
-            "",
-            `Customer: ${customerName.trim()}`,
-            `Mobile: ${mobileNumber.trim()}`,
-            `Delivery Place: ${deliveryPlace.trim()}`,
-            "",
-            "Items Ordered:",
-            itemLines,
-            "",
-            `Total: ₹${totalAmount}`,
-            "",
-            "Payment Done ✅",
-          ].join("\n");
-
-          // Step 1: Open UPI
-          window.location.href = `upi://pay?pa=sakthinaveen0707@oksbi&pn=Break%20Bell%20Bites&am=${totalAmount}&cu=INR`;
-
-          // Step 2: After delay, open WhatsApp
-          setTimeout(() => {
-            window.open(
-              `https://wa.me/919994560691?text=${encodeURIComponent(message)}`,
-              "_blank",
-            );
-          }, 1500);
-
+          const message = buildWhatsAppMessage();
+          window.open(
+            `https://wa.me/919994560691?text=${encodeURIComponent(message)}`,
+            "_blank",
+          );
           setView("thankyou");
         },
         onError: (err) => {
@@ -337,6 +347,7 @@ export default function App() {
             onPlaceChange={setDeliveryPlace}
             onMobileChange={setMobileNumber}
             onConfirm={handleConfirmOrder}
+            onOpenGooglePay={handleOpenGooglePay}
             onBack={() => setView("menu")}
           />
         )}
@@ -624,6 +635,7 @@ interface OrderViewProps {
   onPlaceChange: (v: string) => void;
   onMobileChange: (v: string) => void;
   onConfirm: () => void;
+  onOpenGooglePay: () => void;
   onBack: () => void;
 }
 
@@ -640,6 +652,7 @@ function OrderView({
   onPlaceChange,
   onMobileChange,
   onConfirm,
+  onOpenGooglePay,
   onBack,
 }: OrderViewProps) {
   return (
@@ -834,32 +847,64 @@ function OrderView({
               Payment
             </h2>
           </div>
-          <div className="p-4 space-y-3">
-            <div className="bg-primary/8 border border-primary/20 rounded-xl px-4 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-xs font-ui mb-0.5">
-                  UPI ID
-                </p>
-                <p className="font-ui font-bold text-foreground text-sm">
-                  sakthinaveen0707@oksbi
-                </p>
-                <p className="text-muted-foreground text-xs font-ui mt-0.5">
-                  Break Bell Bites
+          <div className="p-4 space-y-4">
+            {/* Total amount highlight */}
+            <div className="bg-primary/10 border border-primary/30 rounded-2xl px-4 py-4 text-center">
+              <p className="text-muted-foreground text-xs font-ui uppercase tracking-wider mb-1">
+                Total Amount to Pay
+              </p>
+              <p className="font-display font-black text-primary text-4xl">
+                ₹{totalAmount}
+              </p>
+            </div>
+
+            {/* UPI ID */}
+            <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-3">
+              <p className="text-muted-foreground text-xs font-ui mb-1">
+                Pay to this UPI ID
+              </p>
+              <p className="font-ui font-bold text-foreground text-base tracking-tight select-all">
+                sakthinaveen0707@oksbi
+              </p>
+              <p className="text-muted-foreground text-xs font-ui mt-0.5">
+                Break Bell Bites
+              </p>
+            </div>
+
+            {/* Steps */}
+            <div className="space-y-2">
+              <div className="flex items-start gap-2.5">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-black flex items-center justify-center mt-0.5">
+                  1
+                </span>
+                <p className="text-foreground/80 text-sm font-ui">
+                  Open Google Pay and pay ₹{totalAmount} to the UPI ID above.
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-muted-foreground text-xs font-ui mb-0.5">
-                  Amount
-                </p>
-                <p className="font-display font-black text-primary text-2xl">
-                  ₹{totalAmount}
+              <div className="flex items-start gap-2.5">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-black flex items-center justify-center mt-0.5">
+                  2
+                </span>
+                <p className="text-foreground/80 text-sm font-ui">
+                  After payment, tap the WhatsApp button below to confirm your
+                  order.
                 </p>
               </div>
             </div>
-            <p className="text-muted-foreground text-xs font-body text-center leading-relaxed">
-              Tapping "Confirm Order" will open your UPI app to pay ₹
-              {totalAmount}, then send your order to our WhatsApp.
-            </p>
+
+            {/* Open Google Pay button */}
+            <Button
+              data-ocid="order.googlepay_button"
+              type="button"
+              onClick={onOpenGooglePay}
+              className="w-full h-13 rounded-2xl bg-[#4285F4] hover:bg-[#3367D6] active:bg-[#2956B8] text-white font-display font-black text-base transition-all touch-manipulation"
+              style={{ minHeight: "3.25rem" }}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <span className="text-lg">💰</span>
+                Open Google Pay
+              </span>
+            </Button>
           </div>
         </section>
 
@@ -876,26 +921,29 @@ function OrderView({
           </div>
         )}
 
-        {/* ── Confirm Button ── */}
+        {/* ── I Have Paid – Confirm on WhatsApp ── */}
         <Button
           data-ocid="order.confirm_button"
           onClick={onConfirm}
           disabled={isSubmitting}
-          className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground font-display font-black text-lg fire-glow-lg transition-all touch-manipulation"
+          className="w-full h-14 rounded-2xl bg-[#25D366] hover:bg-[#1EBF5A] active:bg-[#18A64D] text-white font-display font-black text-base fire-glow-lg transition-all touch-manipulation"
           style={{ minHeight: "3.5rem" }}
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">
-              <span className="w-5 h-5 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" />
-              Placing Order...
+              <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              Sending Order...
             </span>
           ) : (
-            "Confirm Order ✅"
+            <span className="flex items-center justify-center gap-2">
+              <span className="text-xl">✅</span>I Have Paid – Confirm on
+              WhatsApp
+            </span>
           )}
         </Button>
 
         <p className="text-center text-muted-foreground text-xs pb-2 font-body">
-          UPI payment opens first → then WhatsApp confirmation
+          Only tap after completing payment in Google Pay
         </p>
       </div>
     </main>
