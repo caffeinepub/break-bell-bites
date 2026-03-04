@@ -260,15 +260,6 @@ export default function App() {
     ].join("\n");
   };
 
-  /* ── Open Google Pay (manual, no auto-trigger) ────────────────── */
-  const handleOpenGooglePay = () => {
-    const upiAmount = Math.round(Number(totalAmount));
-    window.open(
-      `upi://pay?pa=sakthinaveen0707@oksbi&pn=Break%20Bell%20Bites&am=${upiAmount}&cu=INR`,
-      "_blank",
-    );
-  };
-
   /* ── Order submission + WhatsApp ──────────────────────────────── */
   const handleConfirmOrder = async () => {
     if (!validate()) return;
@@ -347,7 +338,6 @@ export default function App() {
             onPlaceChange={setDeliveryPlace}
             onMobileChange={setMobileNumber}
             onConfirm={handleConfirmOrder}
-            onOpenGooglePay={handleOpenGooglePay}
             onBack={() => setView("menu")}
           />
         )}
@@ -635,7 +625,6 @@ interface OrderViewProps {
   onPlaceChange: (v: string) => void;
   onMobileChange: (v: string) => void;
   onConfirm: () => void;
-  onOpenGooglePay: () => void;
   onBack: () => void;
 }
 
@@ -652,7 +641,6 @@ function OrderView({
   onPlaceChange,
   onMobileChange,
   onConfirm,
-  onOpenGooglePay,
   onBack,
 }: OrderViewProps) {
   return (
@@ -871,40 +859,13 @@ function OrderView({
               </p>
             </div>
 
-            {/* Steps */}
-            <div className="space-y-2">
-              <div className="flex items-start gap-2.5">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-black flex items-center justify-center mt-0.5">
-                  1
-                </span>
-                <p className="text-foreground/80 text-sm font-ui">
-                  Open Google Pay and pay ₹{totalAmount} to the UPI ID above.
-                </p>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-black flex items-center justify-center mt-0.5">
-                  2
-                </span>
-                <p className="text-foreground/80 text-sm font-ui">
-                  After payment, tap the WhatsApp button below to confirm your
-                  order.
-                </p>
-              </div>
+            {/* Instruction */}
+            <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-3 text-center">
+              <p className="text-foreground/80 text-sm font-ui leading-relaxed">
+                Please pay using <strong>Google Pay / PhonePe</strong> by
+                entering the amount shown above.
+              </p>
             </div>
-
-            {/* Open Google Pay button */}
-            <Button
-              data-ocid="order.googlepay_button"
-              type="button"
-              onClick={onOpenGooglePay}
-              className="w-full h-13 rounded-2xl bg-[#4285F4] hover:bg-[#3367D6] active:bg-[#2956B8] text-white font-display font-black text-base transition-all touch-manipulation"
-              style={{ minHeight: "3.25rem" }}
-            >
-              <span className="flex items-center justify-center gap-2">
-                <span className="text-lg">💰</span>
-                Open Google Pay
-              </span>
-            </Button>
           </div>
         </section>
 
@@ -936,14 +897,14 @@ function OrderView({
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              <span className="text-xl">✅</span>I Have Paid – Confirm on
-              WhatsApp
+              <span className="text-xl">✅</span>I Have Paid – Send Screenshot
+              on WhatsApp
             </span>
           )}
         </Button>
 
         <p className="text-center text-muted-foreground text-xs pb-2 font-body">
-          Only tap after completing payment in Google Pay
+          Tap after completing payment to send your screenshot on WhatsApp
         </p>
       </div>
     </main>
